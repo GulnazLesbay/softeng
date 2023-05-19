@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
-use App\Models\Comment;
-use App\Models\Post;
+use App\Models\Rating;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class PostController extends Controller
@@ -13,7 +13,7 @@ class PostController extends Controller
 
     public function index()
     {
-        $allPosts = Post::all();
+        $allPosts = Product::all();
         $categories = Category::all();
         return view('posts.index', ['posts' => $allPosts, 'categories' => $categories]);
     }
@@ -25,28 +25,30 @@ class PostController extends Controller
 
     public function store(Request $request)
     {
-        Post::create([
-            'title' => $request->title,
-            'content' => $request->input('content'),
-            'category_id' => $request->input('category_id'),
+        $validated = $request->validate([
+            'title' => 'required|max:255',
+            'content' => 'required',
+            'category_id' => 'required|numeric|exists:categories,id',
+
         ]);
-        return redirect()->route('posts.index');
+        Product::create($validated);
+        return redirect()->route('posts.index')->with('message', 'Product saktaldy');
+
     }
 
-    public function show(Post $post)
+    public function show(Product $post)
     {
-        $comments = Comment::all()->where('post_id', $post->id)->sortBy('created_at');
-
-
-        return view('posts.show', ['post' => $post, 'comments' => $comments]);
+        $categories = Category::all();
+        $comments = Rating::all()->where('post_id', $post->id);
+        return view('posts.show', ['post' => $post, 'comments' => $comments, 'categories' => $categories]);
     }
 
-    public function edit(Post $post)
+    public function edit(Product $post)
     {
         return view('posts.edit', ['post' => $post, 'categories' => Category::all()]);
     }
 
-    public function update(Request $request, Post $post)
+    public function update(Request $request, Product $post)
     {
 
         $post->update([
@@ -56,7 +58,7 @@ class PostController extends Controller
         return redirect()->route('posts.index');
     }
 
-    public function destroy(Post $post)
+    public function destroy(Product $post)
     {
         $post->delete();
         return redirect()->route('posts.index');
@@ -64,9 +66,10 @@ class PostController extends Controller
 
     public function postsByCategory(Category $category)
     {
-        $posts = $category->posts;
 
+        $posts = $category->posts;
         return view('posts.index', ['posts' => $posts, 'categories' => Category::all()]);
+
     }
 
 
